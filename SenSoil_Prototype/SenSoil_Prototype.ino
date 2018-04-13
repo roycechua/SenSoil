@@ -32,6 +32,10 @@ static char celsiusTemp[7];
 static char fahrenheitTemp[7];
 static char humidityTemp[7];
 
+int sensor_pin = A0; //Declare the pin for soil moisture sensor
+int output_value ;  //Store the value from analog pin A0
+
+
 // only runs once on boot
 void setup() {
   // Initializing serial port for debugging purposes
@@ -84,6 +88,10 @@ void loop() {
             // Read temperature as Fahrenheit (isFahrenheit = true)
             float f = dht.readTemperature(true);
             // Check if any reads failed and exit early (to try again).
+
+            output_value= analogRead(sensor_pin); //Store the value from analog pin A0
+            output_value = map(output_value,550,0,0,100); //Store the value from analog pin A0
+            
             if (isnan(h) || isnan(t) || isnan(f)) {
               Serial.println("Failed to read from DHT sensor!");
               strcpy(celsiusTemp,"Failed");
@@ -120,10 +128,15 @@ void loop() {
               Serial.print(" *C ");
               Serial.print(hif);
               Serial.println(" *F");
+              
+              Serial.print("Mositure : "); //Added Line
+              Serial.print(output_value); //Added Line
+              Serial.println("%"); //Added Line
             }
             client.println("HTTP/1.1 200 OK");
             client.println("Content-Type: text/html");
             client.println("Connection: close");
+            client.println("Refresh: 5"); //The page refreshed every 5 seconds 
             client.println();
             // your actual web page that displays temperature and humidity
             client.println("<!DOCTYPE HTML>");
@@ -135,6 +148,10 @@ void loop() {
             client.println("*F</h3><h3>Humidity: ");
             client.println(humidityTemp);
             client.println("%</h3><h3>");
+            client.println("<h1>Soil Moisture</h1>"); //Added Line
+            client.println("Moisture: "); //Added Line
+            client.println(output_value); //Added Line
+            client.println("%</h3><h3>"); //Added Line
             client.println("</body></html>");     
             break;
         }

@@ -18,6 +18,8 @@
 // Replace with your network details
 const char* ssid = "RCWx";
 const char* password = "Rcx261523";
+//const char* ssid = "rbc236";
+//const char* password = "royce236";
 
 // Web Server on port 80
 WiFiServer server(80);
@@ -34,7 +36,6 @@ static char humidityTemp[7];
 
 int sensor_pin = A0; //Declare the pin for soil moisture sensor
 int output_value ;  //Store the value from analog pin A0
-
 
 // only runs once on boot
 void setup() {

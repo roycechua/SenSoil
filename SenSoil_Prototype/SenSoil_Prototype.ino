@@ -15,16 +15,16 @@
 #define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 
 // Replace with your network details
-const char* ssid = "RCWx";
-const char* password = "Rcx261523";
-//const char* ssid = "rbc236";
-//const char* password = "royce236";
+//const char* ssid = "RCWx";
+//const char* password = "Rcx261523";
+const char* ssid = "rbc236";
+const char* password = "royce236";
 
 // Web Server on port 80
 WiFiServer server(80);
 
 // DHT Sensor
-const int DHTPin = D2;
+const int DHTPin = D3;
 // Initialize DHT sensor.
 DHT dht(DHTPin, DHTTYPE);
 

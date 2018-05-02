@@ -2,8 +2,7 @@
 #include <DHT_U.h>
 
 /*********
-  Rui Santos
-  Complete project details at http://randomnerdtutorials.com  
+  Sensoil - Soil Salinity Measurement device with Temperature and Humidity Sensors
 *********/
 
 // Including the ESP8266 WiFi library

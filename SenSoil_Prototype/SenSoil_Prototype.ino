@@ -1,3 +1,26 @@
+
+/*********
+  Sensoil - Soil Salinity Measurement device with Temperature and Humidity Sensors
+  Using NodeMCU ESP-12E
+  LCD Pinouts
+  SDA - D2 
+  SCL - D1
+  VCC and GND - It will require 5V
+
+  DHT22 Pinouts
+  Signal - D3
+  VCC and GND it will work with 3.3V of the NodeMCU
+  Adding a 10kohm pull up resistor between VCC and Signal ensures correct logic signals
+
+  SD Card Pinouts
+  CS(Chip Select) Pin - SC (GPIO 15)
+  SCK - D5
+  MISO - S0 (This is wrong)
+  MOSI - S1  We have yet to find out the true pins
+  VCC and GND -
+  *When uploading make sure to disconenct the SD by not powering it on.
+*********/
+
 #include <DHT.h>
 #include <DHT_U.h>
 
@@ -6,9 +29,11 @@
 
 LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-/*********
-  Sensoil - Soil Salinity Measurement device with Temperature and Humidity Sensors
-*********/
+#include <SPI.h>
+#include <SD.h>
+
+const int chipSelect = D4;
+
 
 // Including the ESP8266 WiFi library
 #include <ESP8266WiFi.h>
@@ -34,9 +59,9 @@ const int DHTPin = D3;
 DHT dht(DHTPin, DHTTYPE);
 
 // Temporary variables
-static char celsiusTemp[7];
-static char fahrenheitTemp[7];
-static char humidityTemp[7];
+//static char celsiusTemp[7];
+//static char fahrenheitTemp[7];
+//static char humidityTemp[7];
 
 int sensor_pin = A0; //Declare the pin for soil moisture sensor
 int output_value ;  //Store the value from analog pin A0
@@ -46,8 +71,10 @@ void setup() {
   // Initializing serial port for debugging purposes
   Serial.begin(115200);
   delay(10);
-
-  lcd.init();                      // initialize the lcd 
+  
+  // initialize the lcd 
+  // This is first because people should see something while waiting
+  lcd.init();                      
   // Print a message to the LCD.
   lcd.backlight();
   lcd.setCursor(0,0);
@@ -56,7 +83,8 @@ void setup() {
   lcd.print("Powered by ESP");
   delay(1000);
   lcd.clear();
-  
+
+  // Intialize the DHT22
   dht.begin();
   
   // Connecting to WiFi network
@@ -94,6 +122,16 @@ void setup() {
   lcd.setCursor(0,1);
   lcd.print(WiFi.localIP());
 
+  // Initialize the SD Card last
+  Serial.print("Initializing SD card...");
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    return;
+  }
+  Serial.println("card initialized.");
 }
 
 // runs over and over again
@@ -101,7 +139,11 @@ void loop() {
   // Listenning for new clients
   WiFiClient client = server.available();
 
-
+  String dataString = ""; // for the SD Card
+  /*
+   * Remember the order of the datastring is 
+   * Temp, Humidity, Moisture and Analysis(Soon)
+   */
   
   if (client) {
     lcd.clear();
@@ -121,9 +163,15 @@ void loop() {
             // Read temperature as Fahrenheit (isFahrenheit = true)
             float f = dht.readTemperature(true);
             // Check if any reads failed and exit early (to try again).
+            dataString+=String(t)+","+String(h)+","; // temp and humidity
             
             output_value= analogRead(sensor_pin); //Store the value from analog pin A0
             output_value = map(output_value,550,0,0,100); //Store the value from analog pin A0
+            dataString+=String(output_value)+",";
+
+            /*            
+             * Put your analysis here then use dataString
+             */
 
             // After value is retrieved load it onto LCD immediately
             lcd.setCursor(0,0);
@@ -145,6 +193,23 @@ void loop() {
             lcd.print("N/A"); // dummy
             delay(2000);
             lcd.clear();
+
+            // After values are displayed on the LCD Correctly
+            // Write it to the SD Card immediately
+            File dataFile = SD.open("datalog.csv", FILE_WRITE);
+
+            // if the file is available, write to it:
+            if (dataFile) {
+              dataFile.println(dataString);
+              dataFile.close();
+              // print to the serial port too:
+              Serial.println(dataString);
+            }
+            // if the file isn't open, pop up an error:
+            else {
+              Serial.println("error opening datalog.txt");
+            }
+            delay(2000);
             
             if (isnan(h) || isnan(t) || isnan(f)) {
               Serial.println("Failed to read from DHT sensor!");

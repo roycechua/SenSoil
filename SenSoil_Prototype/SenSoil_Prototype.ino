@@ -1,6 +1,11 @@
 #include <DHT.h>
 #include <DHT_U.h>
 
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
 /*********
   Sensoil - Soil Salinity Measurement device with Temperature and Humidity Sensors
 *********/
@@ -42,21 +47,42 @@ void setup() {
   Serial.begin(115200);
   delay(10);
 
+  lcd.init();                      // initialize the lcd 
+  // Print a message to the LCD.
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("Sensoil Tech");
+  lcd.setCursor(0,1);
+  lcd.print("Powered by ESP");
+  delay(1000);
+  lcd.clear();
+  
   dht.begin();
   
   // Connecting to WiFi network
   Serial.println();
   Serial.print("Connecting to ");
+  lcd.setCursor(0,0);
+  lcd.print("Connecting to ");
   Serial.println(ssid);
-  
+  lcd.setCursor(0,1);
+  lcd.print(ssid);
   WiFi.begin(ssid, password);
+  delay(1000);
   
   while (WiFi.status() != WL_CONNECTED) {
+    lcd.clear();
     delay(500);
     Serial.print(".");
+    lcd.setCursor(0,0);
+    lcd.print("Connecting......");
+    delay(500);
   }
+  lcd.clear();
   Serial.println("");
   Serial.println("WiFi connected");
+  lcd.setCursor(0,0);
+  lcd.print("WiFi connected");
   
   // Starting the web server
   server.begin();
@@ -65,14 +91,20 @@ void setup() {
   
   // Printing the ESP IP address
   Serial.println(WiFi.localIP());
+  lcd.setCursor(0,1);
+  lcd.print(WiFi.localIP());
+
 }
 
 // runs over and over again
 void loop() {
   // Listenning for new clients
   WiFiClient client = server.available();
+
+
   
   if (client) {
+    lcd.clear();
     Serial.println("New client");
     // bolean to locate when the http request ends
     boolean blank_line = true;
@@ -81,6 +113,7 @@ void loop() {
         char c = client.read();
         
         if (c == '\n' && blank_line) {
+
             // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
             float h = dht.readHumidity();
             // Read temperature as Celsius (the default)
@@ -88,9 +121,30 @@ void loop() {
             // Read temperature as Fahrenheit (isFahrenheit = true)
             float f = dht.readTemperature(true);
             // Check if any reads failed and exit early (to try again).
-
+            
             output_value= analogRead(sensor_pin); //Store the value from analog pin A0
             output_value = map(output_value,550,0,0,100); //Store the value from analog pin A0
+
+            // After value is retrieved load it onto LCD immediately
+            lcd.setCursor(0,0);
+            lcd.print("Temp(C): ");
+            lcd.print(t);
+            lcd.print(" C");
+            lcd.setCursor(0,1);
+            lcd.print("Humidity: ");
+            lcd.print(h);
+            delay(2000); // you can something here to make it toggleable 
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("Moisture: ");
+            lcd.print(output_value);
+            lcd.print(" %");
+            lcd.setCursor(0,1);
+            lcd.print("Salinity: ");
+            // add your adjustment here
+            lcd.print("N/A"); // dummy
+            delay(2000);
+            lcd.clear();
             
             if (isnan(h) || isnan(t) || isnan(f)) {
               Serial.println("Failed to read from DHT sensor!");
@@ -142,11 +196,11 @@ void loop() {
             client.println("<!DOCTYPE HTML>");
             client.println("<html>");
             client.println("<head></head><body><h1>ESP8266 - Temperature and Humidity</h1><h3>Temperature in Celsius: ");
-            client.println(celsiusTemp);
+            client.println(t);
             client.println("*C</h3><h3>Temperature in Fahrenheit: ");
-            client.println(fahrenheitTemp);
+            client.println(f);
             client.println("*F</h3><h3>Humidity: ");
-            client.println(humidityTemp);
+            client.println(h);
             client.println("%</h3><h3>");
             client.println("<h1>Soil Moisture</h1>"); //Added Line
             client.println("Moisture: "); //Added Line
